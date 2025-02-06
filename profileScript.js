@@ -101,13 +101,16 @@ document.addEventListener('DOMContentLoaded', function() {
         event.preventDefault();
         let oldPassword = document.getElementById('oldPassword').value;
         let newPassword = document.getElementById('newPassword').value;
-        let result = serverstub.changePassword(token, oldPassword, newPassword);
-        if (result.success) {
-            alert("Password changed successfully!");
-            document.getElementById('changePasswordForm').reset();
-        } else {
-            alert("Failed to change password: " + result.message);
+        if(oldPassword == newPassword) {
+            let result = serverstub.changePassword(token, oldPassword, newPassword);
+            if (result.success) {
+                alert("Password changed successfully!");
+                document.getElementById('changePasswordForm').reset();
+            } else {
+                alert("Failed to change password: " + result.message);
+            }
         }
+        else alert("The old password and new password should be same");
     }
 
     function logOut() {
