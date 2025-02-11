@@ -1,0 +1,78 @@
+<html>
+<head>
+    <title>User Profile</title>
+    <link rel="stylesheet" href="stylesForCertainView.css">
+</head>
+<body>
+    <div class="container">
+        <div class="left-panel">
+            <img src="WechatIMG475.jpg" alt="Welcome Image"/>
+        </div>
+
+        <div class="right-panel">
+            <button class="tab active" data-panel="home">Home</button>
+            <button class="tab" data-panel="browse">Browse</button>
+            <button class="tab" data-panel="account">Account</button>
+
+            <div id="home" class="panel active">
+                <div id="userProfile">
+                    <h2>User Profile</h2>
+                    <div id="userData"></div>
+                    <div id="login-feedback"></div>
+                </div>
+                <button id="logoutButton">Logout</button>
+                <div id="logout-feedback"></div>
+        
+                <div id="messageWall">
+                    <h2>Message Wall</h2>
+                    <div id="messages"></div>
+                    <textarea id="newMessage" placeholder="write your message here"></textarea>
+                    <button id="sendButton">send</button>
+                    <div id="send-message-feedback"></div>
+                    <button id="refreshButton">refresh</button>
+                </div>
+            </div>
+        
+            <div id="browse" class="panel">
+                <h2>Browse</h2>
+                <input type="email" id="userEmail" placeholder="Enter your email">
+                <button id="searchUser">Search</button>
+                <div id="search-user-feedback"></div>
+                <div id="browseUserProfile" style="display: none;">
+                    <h3>User Profile</h3>
+                    <div id="browseUserData"></div>
+                    <div id="browseMessageWall">
+                        <h3>Message Wall</h3>
+                        <div id="browseMessages"></div>
+                        <textarea id="browseNewMessage" placeholder="Write your message here"></textarea>
+                        <button id="browseSendButton">Send</button>
+                        <div id="send-browse-message-feedback"></div>
+                        <button id="browseRefreshButton">Refresh</button>
+                        <div id="load-message-feedback"></div>
+                    </div>
+                </div>
+            </div>
+            
+        
+            <div id="account" class="panel">
+                <h2>Account</h2>
+                <div id="changePassword">
+                    <h3>User Profile</h3>
+                    <form id="changePasswordForm">
+                        <input type="password" id="oldPassword" placeholder="Old Password" required>
+                        <input type="password" id="rePassword" placeholder="Repeat Password" required>
+                        <button id="submit">submit</button>
+                        <div id="password-change-success"></div>
+                        <div id="change-password-feedback"></div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    
+
+    <script src="serverstub.js"></script>
+    <script src="profileScript.js"></script>
+</body>
+</html>
