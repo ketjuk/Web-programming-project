@@ -111,8 +111,9 @@ document.addEventListener('DOMContentLoaded', function() {
     function changePassword(event) {
         event.preventDefault(); // 阻止表单默认提交
 
-        let newPassword = document.getElementById('oldPassword').value;
+        let oldPassword = document.getElementById('oldPassword').value;
         let rePassword = document.getElementById('rePassword').value;
+        let newPassword = document.getElementById('newPassword').value;
         let successMessage = document.getElementById('password-change-success');
         let feedbackArea = document.getElementById('change-password-feedback');
 
@@ -121,13 +122,13 @@ document.addEventListener('DOMContentLoaded', function() {
         feedbackArea.textContent = "";
 
         // 检查两次密码是否相同
-        if (newPassword !== rePassword) {
+        if (oldPassword !== rePassword) {
             feedbackArea.textContent = "Failed to change password: The passwords should be the same.";
             return;
         }
 
         // 发送修改密码请求
-        let result = serverstub.changePassword(token, newPassword);
+        let result = serverstub.changePassword(token, oldPassword, newPassword);
 
         if (result.success) {
             successMessage.textContent = "Password changed successfully!";
