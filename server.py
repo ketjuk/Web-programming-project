@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, g
+from flask import Flask, request, jsonify, g, send_from_directory
 from database_handler import init_db
 import database_handler as db
 import uuid # 用于生成token
@@ -16,35 +16,38 @@ def close_connection(exception):
     db = getattr(g, '_database', None)
     if db is not None:
         db.close()
-
+    
 @app.route('/', methods=['GET'])
-def root():
-    return 'hello students!'
+def send_welcome_page():
+    return send_from_directory('static', 'client.html')
 
-@app.route('/contact', methods=['POST'])
-def create_contact():
-    try:
-        data = request.get_json()
-        if data is not None:
-            if 'name' in data and 'number' in data and len(data['name'])<64 and len(data['number'])<64:
-                db.creare_contact(data['name'],data['number'])
-                return data, 201
-            else:
-                return "", 400
-        else:
-            return "", 400
-    except:
-        return "", 500
+@app.route('/client.css', methods=['GET'])
+def send_client_css():
+    return send_from_directory('static', 'client.css')
 
+@app.route('/client.js', methods=['GET'])
+def send_client_js():
+    return send_from_directory('static', 'client.js')
 
-@app.route('/contact/<name>', methods=['GET'])
-def read_contact(name):
-    if len(name) < 64:
-        # 从数据库中读取联系人信息
-        contacts = db.read_contact(name)
-        return jsonify(contacts), 200 # 返回联系人信息和status code 200
-    else:
-        return "", 400 # 如果name长度大于64，返回400错误
+@app.route('/WechatIMG475.jpg', methods=['GET'])
+def send_WechatIMG475_jpg():
+    return send_from_directory('static', 'WechatIMG475.jpg')
+
+@app.route('/profileView.html', methods=['GET'])
+def send_profileView_html():
+    return send_from_directory('static', 'profileView.html')
+
+@app.route('/favicon.ico', methods=['GET'])
+def send_favicon_ico():
+    return send_from_directory('static', 'favicon.ico')
+
+@app.route('/stylesForCertainView.css', methods=['GET'])
+def send_stylesForCertainView_css():
+    return send_from_directory('static', 'stylesForCertainView.css')
+
+@app.route('/profileScript.js', methods=['GET'])
+def send_profileScript_js():
+    return send_from_directory('static', 'profileScript.js')
 
 
 @app.route('/sign_in', methods=['POST'])
@@ -235,30 +238,32 @@ def get_user_messages_by_email(email):
 @app.route('/post_message', methods=['POST'])
 def post_message():
     token = request.headers.get('Authorization') # 从请求头中获取token
-    data = request.get_json() # 从请求中获取JSON数据
-    message = data.get('message')
-    email = data.get('email')
-    if message == None :
-        return jsonify({"success": False, "message": "Message is empty."})
-    if email == None :
-        return jsonify({"success": False, "message": "email is empty."})
-    if token == None:
-        return jsonify({"success": False, "message": "token is empty."})
-    if not message:
-        return jsonify({"success": False, "message": "Message is empty."})
     if db.verify_token(token):
         token_email = db.get_email_by_token(token)
     else:
         return jsonify({"success": False, "message": "Invalid token."})
-    user = db.get_user_by_email(email)
-    if not user:
-        return jsonify({"success": False, "message": "invalid email."})
-    db.insert_message(email,message)
+    data = request.get_json() # 从请求中获取JSON数据
+    message = data.get('message')
+    receiver = data.get('email')
+    sender = db.get_email_by_token(token)
+    if not sender:
+        return jsonify({"success": False, "message": "sender is invalid."})
+    if message == None :
+        return jsonify({"success": False, "message": "Message is empty."})
+    if receiver == None :
+        return jsonify({"success": False, "message": "receiver is empty."})
+    if token == None:
+        return jsonify({"success": False, "message": "token is empty."})
+    if not message:
+        return jsonify({"success": False, "message": "Message is empty."})
+    user2 = db.get_user_by_email(receiver)
+    if not user2:
+        return jsonify({"success": False, "message": "invalid email of receiver."})
+    db.insert_message(sender,receiver,message)
     return jsonify({"success": True, "message": "Message is sent."})
 
 
 # 检查文件是否被直接执行
 if __name__ == '__main__':
-    init_db()  # 初始化数据库
     app.debug = True  # 启用调试模式
     app.run(port=5001)  # 运行应用，监听5001端口
