@@ -12,12 +12,17 @@ CREATE TABLE users (
 
 CREATE TABLE messages (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    email TEXT,
-    message TEXT
+    sender TEXT,
+    receiver TEXT,
+    message TEXT,
+    FOREIGN KEY (sender) REFERENCES users(email),
+    FOREIGN KEY (receiver) REFERENCES users(email)
 );
 
 CREATE TABLE log_in_users (
-    email TEXT PRIMARY KEY,
-    token TEXT
+    token TEXT PRIMARY KEY,
+    email TEXT,
+    FOREIGN KEY (email) REFERENCES users(email)
 );
+
 
