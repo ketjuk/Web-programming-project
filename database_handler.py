@@ -59,14 +59,32 @@ def update_password(email, new_password):
     get_db().commit() # 提交事务
 
 #存储新消息
-def insert_message(email, message): # 插入消息
-    query_db('INSERT INTO messages (email, message) VALUES (?, ?)', 
-             [email, message])
+def insert_message(sender, receiver, message): # 插入消息
+    query_db('INSERT INTO messages (sender, receiver, message) VALUES (?, ?, ?)',
+             [sender, receiver, message])
     get_db().commit()
 
-# 通过email获取用户的所有消息
-def get_user_messages(email): 
-    return query_db('SELECT * FROM messages WHERE email = ? ORDER BY id;', [email])
+# 获取用户收到的所有消息 (on their wall)
+def get_user_messages(email):
+    query = '''
+        SELECT messages.*, users.firstname, users.familyname
+        FROM messages
+        JOIN users ON messages.sender = users.email
+        WHERE messages.receiver = ?
+        ORDER BY messages.id;
+    '''
+    return query_db(query, [email])
+
+#通过email获取用户发送的所有消息
+def get_user_sent_messages(email):
+    query = '''
+        SELECT messages.*, users.firstname, users.familyname
+        FROM messages
+        JOIN users ON messages.receiver = users.email
+        WHERE messages.sender = ?
+        ORDER BY messages.id;
+    '''
+    return query_db(query, [email])
 
 def get_token_by_email(email): 
     return query_db('SELECT * FROM log_in_users WHERE email = ?', [email], one=True)
@@ -84,10 +102,11 @@ def verify_token(token):
     return bool(result[0]) if result else False
 
 
-def insert_token(email, token): # 插入消息
-    query_db('INSERT INTO log_in_users (email, token) VALUES (?, ?)', 
+def insert_token(email, token):
+    query_db('REPLACE INTO log_in_users (email, token) VALUES (?, ?)',
              [email, token])
     get_db().commit()
+
 
 def delete_token(email):
     query_db('DELETE FROM log_in_users WHERE email = ?', [email])
