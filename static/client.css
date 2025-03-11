@@ -1,0 +1,137 @@
+body {
+    margin: 0;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.container {
+    width: 600px;
+    height: 400px;
+    display: flex;
+    gap: 10px;
+}
+
+.left-panel {
+    flex: 1;
+    width: 340px;
+    height: 100%;
+    border: 1px solid #000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden; /* 确保图片不会溢出容器 */
+
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    box-shadow: 0 2px 5px rgba(36, 36, 36, 0.5);
+    background-color: #f9f9f9;
+    transition: border-color 0.3s, box-shadow 0.3s;
+}
+
+.left-panel img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover; /* 使图片自适应容器大小 */
+    filter: brightness(1.05)
+}
+
+.right-panel {
+    flex: 1;
+    width: 240px;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 5px;
+}
+
+.signup-section {
+    height: 70%;
+    padding: 5px;
+    display: flex;
+    flex-direction: column;
+
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    box-shadow: 0 2px 5px rgba(36, 36, 36, 0.5);
+    background-color: #f9f9f9;
+    transition: border-color 0.3s, box-shadow 0.3s;
+}
+
+.signup-section h3 {
+    margin-top: 5px; 
+    margin-bottom: 5px; 
+    text-align: center;
+}
+  
+#signup .input-group {
+    display: flex;
+    width: 100%; /* 确保输入组不会超过表单宽度 */
+    margin-bottom: 5px;
+}
+
+#signup .input-group label {
+    font-size: 13px;
+    flex: 0 0 80px; 
+    margin-right: 5px;
+}
+  
+#signup .input-group input, #signup .input-group select {
+    min-width: 0; /* 防止输入框过小 */
+}
+
+#gender {
+    margin-bottom: 3px;
+}
+
+
+
+.login-section {
+    height: 30%;
+    padding: 5px;
+    display: flex;
+    flex-direction: column;
+
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    box-shadow: 0 2px 5px rgba(36, 36, 36, 0.5);
+    background-color: #f9f9f9;
+    transition: border-color 0.3s, box-shadow 0.3s;
+}
+
+#login{
+    margin-bottom: 1px;
+}
+
+#login .input-group {
+    margin-top: 10px;
+    display: flex;
+    width: 100%; /* 确保输入组不会超过表单宽度 */
+    margin-bottom: 5px;
+}
+
+#login .input-group label {
+    font-size: 13px;
+    flex: 0 0 80px; /* Adjust width as needed */
+    margin-right: 5px;
+}
+  
+#login .input-group input {
+    min-width: 0; /* 防止输入框过小 */
+}
+
+
+
+
+button {
+    width: 60px;
+    padding: 4px;
+    background: #007bff;
+    color: white;
+    border: none;
+    border-radius: 7px;
+    cursor: pointer;
+    float: right;
+}
