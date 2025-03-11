@@ -111,3 +111,7 @@ def insert_token(email, token):
 def delete_token(email):
     query_db('DELETE FROM log_in_users WHERE email = ?', [email])
     get_db().commit()
+
+def delete_all_tokens():
+    query_db('DELETE FROM log_in_users')
+    get_db().commit()
