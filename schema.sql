@@ -22,6 +22,7 @@ CREATE TABLE messages (
 CREATE TABLE log_in_users (
     token TEXT PRIMARY KEY,
     email TEXT,
+    secret_key TEXT,
     FOREIGN KEY (email) REFERENCES users(email)
 );
 
