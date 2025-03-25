@@ -1,26 +1,44 @@
+const messageMap = {
+    "wrong_username_or_password": "Wrong username or password.",
+    "user_information_is_blank.": "User information is blank.",
+    "illegal_email": "Illegal email",
+    "password_too_short": "Password too short",
+    "user_already_exists": "User already exists",
+    "successfully_signed_in": "Successfully signed in",
+    "missing_required_fields": "please enter both username and password",
+    "successfully_signed_up": "Successfully signed up",
+    "method_not_allowed": "method is not allowed",
+    "missing_json_data": "missing data",
+    "internal_server_error": "something wrong with the server",
+    "email_missing": "please input the email address",
+    "email_send_failed": "failed to send email",
+    "user_does_not_exist": "user does not exist"
+  };
+
 function sendPostRequest(url, data, callback) {
     var xhr = new XMLHttpRequest();
-    url = "http://13.48.106.212:5000" + url;
+    url = "http://MyTwidder-env2.eba-gpcgmqze.eu-north-1.elasticbeanstalk.com" + url;
     xhr.open('POST', url, true);
     xhr.setRequestHeader('Content-Type', 'application/json');
 
     xhr.onload = function () {
-        // 先解析 JSON 响应
-        var responseData = JSON.parse(xhr.responseText);
-
-        // 然后检查 responseData 是否为 null 或 undefined
-        if (!responseData) {
-            callback(new Error('Response data is null or undefined'), null);
+        var responseData;
+        try {
+            responseData = JSON.parse(xhr.responseText);
+        } catch (e) {
+            callback(new Error('Invalid JSON response'), null);
             return;
         }
 
         // 检查 "success" 字段
-        if (responseData.success) {
+        if (xhr.status >= 200 && xhr.status < 300) {
             // 请求成功
+            responseData = JSON.parse(xhr.responseText);
             callback(null, responseData); // 调用回调函数，传递 null 作为错误
         } else {
             // 请求失败，传递错误信息
-            callback(new Error(responseData.message || 'Request failed'), null);
+            const errorMessage = messageMap[responseData.message] || 'Request failed';
+            callback(new Error(errorMessage), null);
         }
     };
 
@@ -82,7 +100,7 @@ function submitSignup(event) {
             feedbackArea.textContent = error;
         }
         else {
-            feedbackArea.textContent = responseData.message;
+            feedbackArea.textContent = messageMap[responseData.message];
         }
     });
 
@@ -105,9 +123,11 @@ function submitLogin(event) {
             }
         }
         else {
-            const token = result.data;
+            const token = result.data.token;
+            const secretKey = result.data.secret_key;
 
             sessionStorage.setItem('userToken', token);
+            sessionStorage.setItem('userSecretKey', secretKey);
             sessionStorage.setItem('userEmail', email);
 
             window.location.href = 'profileView.html';
@@ -116,12 +136,35 @@ function submitLogin(event) {
 
 }
 
+function handleForgotPassword(event) {
+    const emailInput = document.getElementById('login-username');
+    const email = emailInput.value.trim();
+    
+    if (!emailInput) {
+        const feedback = document.getElementById('login-feedback');
+        feedback.textContent = 'Please enter email address first';
+        return;
+    }
+    
+    let data = { email: email};
+
+    sendPostRequest('/reset_password', data, function (error, result) {
+        const feedback = document.getElementById('login-feedback');
+        if (error) {
+            feedback.textContent = error;
+        } else {
+            feedback.textContent = 'Password reset email sent';
+        }
+    });
+}
+
 //在现有的代码中添加建立websocket连接的函数
 function connectWebSocket() {
     const token = sessionStorage.getItem('userToken');
 
     if (token) {
-        const ws = new WebSocket(`ws://13.48.106.212:5000/ws?token=${token}`);
+        const ws = new WebSocket(`ws://MyTwidder-env2.eba-gpcgmqze.eu-north-1.elasticbeanstalk.com/ws?token=${token}`);
+        //const ws = new WebSocket(`ws://127.0.0.1:5000/ws?token=${token}`);
 
         ws.onopen = () => {
             console.log('WebSocket connected');
