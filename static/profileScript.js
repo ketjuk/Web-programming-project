@@ -1,136 +1,135 @@
-function sendPostRequest(url, token, data, callback) {//POST
-    var xhr = new XMLHttpRequest();
-    url = "http://13.48.106.212:5000" + url;
-    xhr.open('POST', url, true);
-    xhr.setRequestHeader('Authorization', token); 
-    xhr.setRequestHeader('Content-Type', 'application/json');
+const messageMap2 = {
+    "successfully_signed_out": "successfully signed out",
+    "invalid_token": "token is invalid",
+    "missing_required_authorization": "token or timestamp or received_hmac is missing",
+    "wrong_password": "password is wrong",
+    "new_password_too_short": "new password is too short",
+    "password_changed": "password successfully changed",
+    "user_not_found": "user is not found",
+    "empty_email": "email is empty",
+    "No_messages_found": "no messages are found",
+    "missing_message_data": "data is missing",
+    "sender_is_empty": "sender is missing",
+    "receiver_is_empty": "receiver is missing",
+    "missing_message": "message is missing",
+    "invalid_receiver_email": "receiver email is invalid",
+    "message_sent_successfully": "message successfully sent",
+    "method_not_allowed": "method is not allowed",
+    "missing_json_data": "missing data",
+    "internal_server_error": "something wrong with the server",
+    "timestamp_expired": "time is expired",
+    "invalid_signature": "signature is invalid",
+    "invalid_timestamp": "time is invalid"
+};
 
-    xhr.onload = function() {
-      // 先解析 JSON 响应
-      var responseData = JSON.parse(xhr.responseText);
+function pemToArrayBuffer(pem) {
+    const pemHeader = '-----BEGIN PRIVATE KEY-----';
+    const pemFooter = '-----END PRIVATE KEY-----';
+    const pemContents = pem
+        .replace(pemHeader, '')
+        .replace(pemFooter, '')
+        .replace(/\n/g, '')
+        .trim();
 
-      // 然后检查 responseData 是否为 null 或 undefined
-      if (!responseData) {
-        callback(new Error('Response data is null or undefined'), null);
+    // Base64 decode to ArrayBuffer
+    return Uint8Array.from(atob(pemContents), c => c.charCodeAt(0)).buffer;
+}
+
+// ArrayBuffer to Base64
+function arrayBufferToBase64(buffer) {
+    return btoa(String.fromCharCode(...new Uint8Array(buffer)));
+}
+
+async function generateSimpleHMAC() {
+    const privateKeyPem = sessionStorage.getItem('userSecretKey');
+    if (!privateKeyPem) {
+        console.error('Secret key not found');
+        return null;
+    }
+
+    const timestamp = Math.floor(Date.now() / 1000);
+    const data = `timestamp=${timestamp}`;
+
+    const rsa = KEYUTIL.getKey(privateKeyPem); 
+    const sig = new KJUR.crypto.Signature({ alg: 'SHA256withRSA' });
+    sig.init(rsa);
+    sig.updateString(data);
+    const signatureHex = sig.sign();
+    const signatureB64 = hextob64(signatureHex);
+
+    return { signature: signatureB64, timestamp: timestamp };
+}
+
+async function sendSecureRequest(method, url, data, callback) {
+    const token = sessionStorage.getItem('userToken');
+    if (!token) {
+        callback(new Error('User not logged in'), null);
         return;
-      }
+    }
 
-      // 检查 "success" 字段
-      if (responseData.success) {
-        // 请求成功
-        callback(null, responseData); // 调用回调函数，传递 null 作为错误
-      } else {
-        // 请求失败，传递错误信息
-        callback(new Error(responseData.message || 'Request failed'), null);
-      }
-    };
+    // generate the signature (function's name remains to be Hmac)
+    const signatureData = await generateSimpleHMAC();
+    if (!signatureData) {
+        callback(new Error('HMAC generation failed'), null);
+        return;
+    }
 
-    xhr.onerror = function() {
-      callback(new Error('Request error'), null); // 传递错误信息
-    };
+    const xhr = new XMLHttpRequest();
+    let fullUrl = 'http://MyTwidder-env2.eba-gpcgmqze.eu-north-1.elasticbeanstalk.com' + url;
+    //let fullUrl =  url;
+    // GET 请求处理 URL 参数
+    if (method === 'GET' && data) {
+        const params = new URLSearchParams(data).toString();
+        fullUrl += `?${params}`;
+    }
 
-    xhr.send(JSON.stringify(data));
-  }
-
-function sendGetRequest(url, token, callback) {//GET
-    var xhr = new XMLHttpRequest();
-    // 拼接 URL 和参数
-    let fullURL = "http://13.48.106.212:5000" + url;
-
-    xhr.open('GET', fullURL, true);
-    xhr.setRequestHeader('Authorization', token); 
+    xhr.open(method, fullUrl, true);
+    xhr.setRequestHeader('Authorization', token);
+    xhr.setRequestHeader('Signature', signatureData.signature);
+    xhr.setRequestHeader('Timestamp', signatureData.timestamp);
     xhr.setRequestHeader('Content-Type', 'application/json');
 
     xhr.onload = function() {
-        var responseData = JSON.parse(xhr.responseText);
-
-        if (!responseData) {
-            callback(new Error('Response data is null or undefined'), null);
-            return;
-        }
-
-        if (responseData.success) {
-            callback(null, responseData);
-        } else {
-            callback(new Error(responseData.message || 'Request failed'), null);
+        try {
+            const responseData = JSON.parse(xhr.responseText);
+            if (xhr.status >= 200 && xhr.status < 300) {
+                callback(null, responseData);
+            } else {
+                const errorMessage = messageMap2[responseData.message] || 'Request failed';
+                callback(new Error(errorMessage), null);
+            }
+        } catch (e) {
+            callback(new Error('Invalid JSON response'), null);
         }
     };
 
     xhr.onerror = function() {
-        console.error('Request error');
         callback(new Error('Request error'), null);
     };
 
-    xhr.send();
+    // 发送数据（GET/DELETE 无 body）
+    if (method === 'POST' || method === 'PUT') {
+        xhr.send(JSON.stringify(data));
+    } else {
+        xhr.send();
+    }
 }
 
-function sendPutRequest(url, token, data, callback) {//PUT
-    var xhr = new XMLHttpRequest();
-    url = "http://13.48.106.212:5000" + url;
-    xhr.open('PUT', url, true);
-    xhr.setRequestHeader('Authorization', token);  //注意是Authorization
-    xhr.setRequestHeader('Content-Type', 'application/json');
-
-    xhr.onload = function() {
-        // 先解析 JSON 响应
-        var responseData = JSON.parse(xhr.responseText);
-
-        // 然后检查 responseData 是否为 null 或 undefined
-        if (!responseData) {
-            callback(new Error('Response data is null or undefined'), null);
-            return;
-        }
-
-        // 检查 "success" 字段
-        if (responseData.success) {
-            // 请求成功
-            callback(null, responseData); // 调用回调函数，传递 null 作为错误
-        } else {
-            // 请求失败，传递错误信息
-            callback(new Error(responseData.message || 'Request failed'), null);
-        }
-    };
-
-    xhr.onerror = function() {
-        callback(new Error('Request error'), null); // 传递错误信息
-    };
-
-    xhr.send(JSON.stringify(data));
+// 专用请求函数（调用通用函数）
+function sendPostRequest(url, data, callback) {
+    sendSecureRequest('POST', url, data, callback);
 }
 
-function sendDeleteRequest(url, token, callback) { //DELETE
-    var xhr = new XMLHttpRequest();
-    url = "http://13.48.106.212:5000" + url;
-    xhr.open('DELETE', url, true);
-    xhr.setRequestHeader('Authorization', token);  //设置Authorization
-    xhr.setRequestHeader('Content-Type', 'application/json');
+function sendGetRequest(url, data, callback) {
+    sendSecureRequest('GET', url, data, callback);
+}
 
-    xhr.onload = function() {
-        // 先解析 JSON 响应
-        var responseData = JSON.parse(xhr.responseText);
+function sendPutRequest(url, data, callback) {
+    sendSecureRequest('PUT', url, data, callback);
+}
 
-        // 然后检查 responseData 是否为 null 或 undefined
-        if (!responseData) {
-            callback(new Error('Response data is null or undefined'), null);
-            return;
-        }
-        if (xhr.status >= 200 && xhr.status < 300) {
-            try {
-                const result = JSON.parse(xhr.responseText); //在client端使用JSON.parse
-                callback(null, result);
-            } catch (error) {
-                callback(error);
-            }
-        } else {
-            callback(xhr.statusText); //传递错误信息
-        }
-    };
-
-    xhr.onerror = function() {
-        callback(new Error('Request error'), null); // 传递错误信息
-    };
-
-    xhr.send();
+function sendDeleteRequest(url, callback) {
+    sendSecureRequest('DELETE', url, null, callback);
 }
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -138,7 +137,8 @@ document.addEventListener('DOMContentLoaded', function() {
     let feedbackArea = document.getElementById('login-feedback2');
     let ws;
     if (token) {
-        ws = new WebSocket(`ws://13.48.106.212:5000/ws?token=${token}`);
+        ws = new WebSocket(`ws://MyTwidder-env2.eba-gpcgmqze.eu-north-1.elasticbeanstalk.com/ws?token=${token}`);
+        //ws = new WebSocket(`ws://127.0.0.1:5000/ws?token=${token}`);
 
         ws.onopen = () => {
             console.log('WebSocket connected');
@@ -150,6 +150,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 // 清除 sessionStorage
                 sessionStorage.removeItem('userToken');
                 sessionStorage.removeItem('userEmail');
+                sessionStorage.removeItem('userSecretKey');
                 // 重定向到欢迎页面
                 window.location.href = '/client.html';
             }
@@ -169,7 +170,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     function showUserProfile() {
-        sendGetRequest("/get_user_data_by_token", token, function(error, result) {
+        sendGetRequest("/get_user_data_by_token", null, function(error, result) {
             if(error != null) {
                 if (feedbackArea) {
                     feedbackArea.innerHTML = error;
@@ -190,43 +191,37 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function sendMessage() {//给自己发送消息
-        const email =  sessionStorage.getItem('userEmail');
-        let token = sessionStorage.getItem('userToken');
+        const email = sessionStorage.getItem('userEmail');
         const message = document.getElementById('newMessage').value;
-        let content = {email: email, message : message}
+        const content = { email: email, message: message }; // 移除 token 参数
         let feedbackArea = document.getElementById('send-message-feedback');
-        sendPostRequest("/post_message", token, content, function(error,result) {
+        sendPostRequest("/post_message", content, function(error, result) {
             if(error != null) {
                 feedbackArea.textContent = error;
             }
             else {
-                feedbackArea.textContent = result.message;
+                feedbackArea.textContent = messageMap2[result.message];
             }
         });
     }
 
     function displayAllMessages() {
         let feedbackArea = document.getElementById('messages');
-        const token = sessionStorage.getItem('userToken'); 
-        sendGetRequest("/get_user_messages_by_token", token, function(error, result) {
+        sendGetRequest("/get_user_messages_by_token", null, function(error, result) {
             if (error != null) {
                 if (feedbackArea) {
-                    feedbackArea.innerHTML = error.message; 
+                    feedbackArea.innerHTML = error; 
                 }
             } else {
-                if (result.success) {
-                    const messages = result.message;
-                    let html = "";
-                    for (let i = 0; i < messages.length; i++) {
-                        const messageData = messages[i];
-                        const senderEmail = messageData[1];
-                        const messageContent = messageData[3];
-                        html += `<p>${senderEmail}: ${messageContent}</p>`;
-                    }
-                    feedbackArea.innerHTML = html;
-                } else {
-                    feedbackArea.innerHTML = "failed to get message";
+                const messages = result.message;
+                let html = "";
+                for (let i = 0; i < messages.length; i++) {
+                    const messageData = messages[i];
+                    const senderEmail = messageData[1];
+                    const messageContent = messageData[3];
+                    html += `<p>${senderEmail}: ${messageContent}</p>`;
                 }
+                feedbackArea.innerHTML = html;
             }
         });
     }
@@ -246,26 +241,19 @@ document.addEventListener('DOMContentLoaded', function() {
         let feedbackArea = document.getElementById('browseUserData');
         let feedbackArea2 = document.getElementById('search-user-feedback');
         const email = document.getElementById('userEmail').value;
-        let token = sessionStorage.getItem('userToken');
         if(email === "") {
             feedbackArea2.innerHTML = "Please enter a user email";
             return;
         }
-        sendGetRequest("/get_user_data_by_email/" + email, token, function (profileError, profileResult) {
-            if (profileError) {
+        sendGetRequest("/get_user_data_by_email/" + email, null, function(error, result) {
+            if (error) {
                 if (feedbackArea) {
-                        feedbackArea.innerHTML = profileError;
+                    feedbackArea.innerHTML = profileError;
                 }
             } else {
-                if (profileResult.success) {
-                    displayUserProfile(profileResult.user, 'browseUserData');
-                    document.getElementById('browseUserProfile').style.display = 'block';
-    
-                    loadUserMessages(email);
-    
-                } else {
-                    feedbackArea.innerHTML = "User not found: " + profileResult.message;
-                }
+                displayUserProfile(result.user, 'browseUserData');
+                document.getElementById('browseUserProfile').style.display = 'block';
+                loadUserMessages(email);
             }
         });
         
@@ -298,57 +286,43 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function loadUserMessages(email) {
-        let token = sessionStorage.getItem('userToken');
-        sendGetRequest("/get_user_messages_by_email/" + email, token, function (messageError, messageResult) {
+        sendGetRequest("/get_user_messages_by_email/" + email, null, function(error, result) {
             let messageFeedbackArea = document.getElementById('load-message-feedback');
-            if (messageError) {
+            if (error) {
                 if (messageFeedbackArea) {
-                    messageFeedbackArea.innerHTML = messageError;
+                    messageFeedbackArea.innerHTML = error ;
                 }
             } else {
-                if (messageResult.success) {
-                    displayMessages(messageResult.message, 'browseMessages');
-                } else {
-                    if (messageFeedbackArea) {
-                        messageFeedbackArea.innerHTML = "Failed to load messages: " + messageResult.message;
-                    }
-                }
+                displayMessages(result.message, 'browseMessages');
             }
         });
     }
 
-    function sendMessageAtMessageWall() {//给自己发送消息
-        const email =  sessionStorage.getItem('userEmail');
-        let token = sessionStorage.getItem('userToken');
+    function sendMessageAtMessageWall() {//给用户发送消息
+        const email = document.getElementById('userEmail').value;
         const message = document.getElementById('browseNewMessage').value;
         let content = {email: email, message : message}
         let feedbackArea = document.getElementById('send-browse-message-feedback');
-        sendPostRequest("/post_message", token, content, function(error,result) {
+        sendPostRequest("/post_message", content, function(error, result) {
             if(error != null) {
                 feedbackArea.textContent = error;
             }
             else {
-                feedbackArea.textContent = result.message;
+                feedbackArea.textContent = messageMap2[result.message];
             }
         });
     }
 
     function refreshBrowseWallMessages(email) {
         let token = sessionStorage.getItem('userToken');
-        sendGetRequest("/get_user_messages_by_email/" + email, token, function (messageError, messageResult) {
-            let messageFeedbackArea = document.getElementById('load-message-feedback');
-            if (messageError) {
+        let messageFeedbackArea = document.getElementById('load-message-feedback');
+        sendGetRequest("/get_user_messages_by_email/" + email, null, function(error, result) {
+            if (error) {
                 if (messageFeedbackArea) {
-                    messageFeedbackArea.innerHTML = messageError;
+                    messageFeedbackArea.textContent =  error;
                 }
             } else {
-                if (messageResult.success) {
-                    displayMessages(messageResult.message, 'browseMessages');
-                } else {
-                    if (messageFeedbackArea) {
-                        messageFeedbackArea.innerHTML = "Failed to load messages: " + messageResult.message;
-                    }
-                }
+                displayMessages(messageMap2[result.message], 'browseMessages');
             }
         });
     }
@@ -361,7 +335,6 @@ document.addEventListener('DOMContentLoaded', function() {
         let newPassword = document.getElementById('newPassword').value;
         let successMessage = document.getElementById('password-change-success');
         let feedbackArea = document.getElementById('change-password-feedback');
-        let token = sessionStorage.getItem('userToken'); 
     
         // 清空之前的消息
         successMessage.textContent = "";
@@ -377,16 +350,12 @@ document.addEventListener('DOMContentLoaded', function() {
             newpassword: newPassword
         };
     
-        sendPutRequest("/change_password", token, passwordData, function (error, result) {
+        sendPutRequest("/change_password", passwordData, function(error, result) {
             if (error) {
-                feedbackArea.textContent = "Failed to change password: " + error.message;
+                feedbackArea.textContent = "Failed to change password: " + error;
             } else {
-                if (result.success) {
-                    successMessage.textContent = "Password changed successfully!";
-                    document.getElementById('changePasswordForm').reset(); // 重置表单
-                } else {
-                    feedbackArea.textContent = "Failed to change password: " + result.message;
-                }
+                successMessage.textContent = "Password changed successfully!";
+                document.getElementById('changePasswordForm').reset(); // 重置表单
             }
         });
     }
@@ -394,21 +363,18 @@ document.addEventListener('DOMContentLoaded', function() {
 
 
     function logOut() {
-        let token = sessionStorage.getItem('userToken');
         let feedbackArea = document.getElementById('logout-feedback');
-        sendDeleteRequest("/sign_out", token, function (error, result) {
+        sendDeleteRequest("/sign_out", function(error, result) {
             if (error) {
                 if (feedbackArea) {
-                    feedbackArea.textContent = "Log out failed: " + error.message;
+                    feedbackArea.textContent = "Log out failed: " + messageMap2[error];
                 }
             } else {
-                if (result.success) {
-                    sessionStorage.removeItem('userToken');
-                    window.location.href = "/"; 
-                } else {
-                    if (feedbackArea) {
-                        feedbackArea.textContent = "Log out failed: " + result.message;
-                    }
+                sessionStorage.removeItem('userToken');
+                window.location.href = "/"; 
+                
+                if (feedbackArea) {
+                    feedbackArea.textContent = messageMap2[result];
                 }
             }
         });
