@@ -1,4 +1,8 @@
+PLEASE CHECK THE BRANCH "lab4" TO SEE THE FINAL RESULT
+
+description:
 Built a Flask backend with SQLite3 as database
+
 According to the lab instructions, I have completed the following:
 
 1.Using HTTP status codes and upgrading the feedback mechanism (2 points)
